@@ -24,6 +24,8 @@ In advance, you will need to add several mrbgems to `esp32_build_config.rb`
 ```ruby
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-proc-ext"
+  conf.gem :core => "mruby-toplevel-ext"
+  conf.gem :github => "mruby-esp32/mruby-esp32-system"
 ```
 ## Code
 ```ruby
@@ -114,8 +116,7 @@ i2c.deinit
 
 **Many thanks!**
 
-*   I2C library for mruby-esp32 by [mruby-esp32/mruby-esp32-i2c
-](https://github.com/mruby-esp32/mruby-esp32-i2c)
+*   I2C library for mruby-esp32 by [mruby-esp32/mruby-esp32-i2c](https://github.com/mruby-esp32/mruby-esp32-i2c)
 *   8x8 monochrome bitmap fonts from font8x8_basic.h by [dhepper/font8x8](https://github.com/dhepper/font8x8)
 *   graphics libraries are adapted from OLEDDisplay.cpp by [squix78/esp8266-oled-ssd1306](https://github.com/squix78/esp8266-oled-ssd1306)
 
