@@ -17,7 +17,7 @@
 // https://github.com/dhepper/font8x8
 #include "font8x8_basic.h"
 
-static const uint8_t* TAG = "SSD1306";
+static const char *TAG = "SSD1306";
 
 // Pixel Buffer
 static uint8_t buffer[DISPLAY_PIXSEL];
