@@ -267,7 +267,7 @@ static mrb_value
 ssd1306_clear(mrb_state *mrb, mrb_value self)
 {
   buffer_clear();
-  return mrb_nil_value();
+  return self;
 }
 
 static mrb_value

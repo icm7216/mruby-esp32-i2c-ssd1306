@@ -31,6 +31,7 @@ module OLED
       @i2c.send("\x00\x22\x00\x07", @addr)  # PAGE_ADDR, 0x00 = start, 0x7f = end
       @i2c.send("\x00\xAF", @addr)          # display ON 
       System.delay(200)
+      self
     end
 
     def ready?
