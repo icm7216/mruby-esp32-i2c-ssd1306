@@ -32,21 +32,4 @@
 // Charge Pump Command
 #define SET_CHARGE_PUMP             0x8D    // 0x14 = enable charge pump
 
-// mruby binding of manipulate the graphics
-static mrb_value ssd1306_clear(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_set_pixel(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_get_pixel(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_line(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_vertical_line(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_horizontal_line(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_rect(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_fill_rect(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_circle(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_draw_fill_circle(mrb_state *mrb, mrb_value self);
-
-// mruby binding of Display a character string
-static mrb_value ssd1306_display(mrb_state *mrb, mrb_value self);
-static mrb_value ssd1306_text(mrb_state *mrb, mrb_value self);
-
-
 #endif /* I2CSSD1306H_ */
