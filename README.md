@@ -12,13 +12,22 @@ Add the following line below to your `esp32_build_config.rb`:
   conf.gem :github => 'icm7216/mruby-esp32-i2c-ssd1306'
 ```
 
-# Example
+# Usage
 
 Example of controlling the OLED display with SSD1306 controller.
 
-## Demo movie
+### Demo movie
 
 ![movie](ESP32-SSD1306_sample.gif)
+
+I2C Wiring
+```
+  SSD1306       NodeMCU-32S(ESP32)
+      VCC ----> 3v3  (3.3V)
+      GND ----> GND
+      SCL ----> GPIO 22
+      SDA ----> GPIO 21
+```
 
 In advance, you will need to add several mrbgems to `esp32_build_config.rb`
 ```ruby
@@ -27,13 +36,15 @@ In advance, you will need to add several mrbgems to `esp32_build_config.rb`
   conf.gem :core => "mruby-toplevel-ext"
   conf.gem :github => "mruby-esp32/mruby-esp32-system"
 ```
-## Code
+
+# Code
+
 ```ruby
 include ESP32
 
 i2c = I2C.new(I2C::PORT0, scl: 22, sda: 21).init(I2C::MASTER)
 oled = OLED::SSD1306.new(i2c)
-oled.init
+
 oled.clear
 System.delay(100)
 msg = ["Hello! mruby", "mruby-ESP32", "mruby", "ESP32"]

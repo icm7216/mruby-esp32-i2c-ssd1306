@@ -11,8 +11,44 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-#include "i2c_ssd1306.h"
 #include "tiny_grafx.h"
+
+// SSD1306 control byte
+#define SSD1306I2C_CONTROLBYTE_CMDSINGLE       0x80
+#define SSD1306I2C_CONTROLBYTE_CMDSTREAM       0x00
+#define SSD1306I2C_CONTROLBYTE_DATASTREAM      0x40
+
+/* ------------------------------------------------
+  As a reference, leave the configuration command information.
+// Fundamental Commands 
+#define SSD1306I2C_SET_CONTRAST                0x81    // 0x7F = default
+#define SSD1306I2C_RESUME_RAM_CONTENT_DISPLAY  0xA4
+#define SSD1306I2C_DISPLAY_OFF                 0xAE
+#define SSD1306I2C_DISPLAY_ON                  0xAF
+// Scrolling Commands
+#define SSD1306I2C_STOP_SCROLLING              0x2E
+// Addressing Setting Commands
+#define SSD1306I2C_SET_MEMORY_ADDR_MODE        0x20    // 0x00 = Horizontal Mode
+#define SSD1306I2C_SET_COLUMN_ADDR             0x21    // 0x00 = start, 0x7f = end
+#define SSD1306I2C_SET_PAGE_ADDR               0x22    // 0x00 = start, 0x07 = end
+// Hardware Configuration
+#define SSD1306I2C_SET_DISPLAY_START_LINE      0x40    // start line is 0d
+#define SSD1306I2C_REMAP                       0xA1    // SEG0 is mapped to column address 127
+#define SSD1306I2C_MUX_RATIO                   0xA8    // 0x3F = 64d -1d
+#define SSD1306I2C_SCAN_DIRECTION              0xC8    // SCAN_DIRECTION, reverse up-bottom
+#define SSD1306I2C_SET_DISPLAY_OFFSET          0xD3    // 0x00 = no offset
+#define SSD1306I2C_SET_COM_PINS                0xDA    // 0x12 = Alternative configuration, Disable L/R remap
+#define SSD1306I2C_SET_OSC_FREQUENCY           0xd5    // 0x00
+// Charge Pump Command
+#define SSD1306I2C_SET_CHARGE_PUMP             0x8D    // 0x14 = enable charge pump
+--------------------------------------------------- */
+
+// SSD1306 display config
+#define SSD1306_DISPLAY_WIDTH   128
+#define SSD1306_DISPLAY_HEIGHT  64
+#define SSD1306_DISPLAY_PIXSEL  1024
+#define SSD1306_FONT_WIDTH      8
+#define SSD1306_FONT_HEIGHT     8 
 
 static const char *TAG = "SSD1306";
 
@@ -151,16 +187,16 @@ ssd1306_display(mrb_state *mrb, mrb_value self)
   addr = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@addr")));
 
   // get frame buffer
-  buffer = mrb_malloc(mrb, DISPLAY_PIXSEL);
-  memset(buffer, 0, DISPLAY_PIXSEL);
-  buffer_read(buffer, DISPLAY_PIXSEL);
+  buffer = mrb_malloc(mrb, SSD1306_DISPLAY_PIXSEL);
+  memset(buffer, 0, SSD1306_DISPLAY_PIXSEL);
+  buffer_read(buffer, SSD1306_DISPLAY_PIXSEL);
 
   // send data to OLED
   cmd = i2c_cmd_link_create();
   i2c_master_start(cmd);
   i2c_master_write_byte(cmd, (addr << 1 ) | I2C_MASTER_WRITE, true);  
-  i2c_master_write_byte(cmd, CONTROLBYTE_DATASTREAM, true);
-  for (uint16_t i = 0; i < DISPLAY_PIXSEL; i++) {
+  i2c_master_write_byte(cmd, SSD1306I2C_CONTROLBYTE_DATASTREAM, true);
+  for (uint16_t i = 0; i < SSD1306_DISPLAY_PIXSEL; i++) {
     i2c_master_write_byte(cmd, buffer[i], true);
   }
   i2c_master_stop(cmd);
@@ -190,6 +226,21 @@ ssd1306_text(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+static mrb_value
+_tinygrafx_init(mrb_state *mrb, mrb_value self) 
+{
+  // Initialize the TINYGRAFX
+  tinygrafx_config_t config = {
+    .display_width = SSD1306_DISPLAY_WIDTH,
+    .display_height = SSD1306_DISPLAY_HEIGHT,
+    .display_pixsel = SSD1306_DISPLAY_PIXSEL,
+    .font_width = SSD1306_FONT_WIDTH,
+    .font_height = SSD1306_FONT_HEIGHT
+  };
+  tinygrafx_init(config);
+  
+  return mrb_nil_value();
+}
 
 // mrbgem init
 void
@@ -218,6 +269,8 @@ mrb_mruby_esp32_i2c_ssd1306_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, ssd1306, "display", ssd1306_display, MRB_ARGS_NONE());
   mrb_define_method(mrb, ssd1306, "text", ssd1306_text, MRB_ARGS_REQ(3));
   
+  // Initialize the TINYGRAFX
+  mrb_define_method(mrb, ssd1306, "_tinygrafx_init", _tinygrafx_init, MRB_ARGS_NONE());
 }
 
 void

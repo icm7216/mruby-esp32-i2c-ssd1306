@@ -8,9 +8,7 @@ module OLED
       @addr = addr
       @color = color
       @fontsize = fontsize
-    end
-    
-    def init
+ 
       # see controller data sheet
       @i2c.send("\x00\xAE", @addr)          # display OFF
       @i2c.send("\x00\xA8\x3F", @addr)      # MUX ratio (0x3F = 64d -1d)
@@ -31,6 +29,8 @@ module OLED
       @i2c.send("\x00\x22\x00\x07", @addr)  # PAGE_ADDR, 0x00 = start, 0x7f = end
       @i2c.send("\x00\xAF", @addr)          # display ON 
       System.delay(200)
+      _tinygrafx_init                       # Initialize the TINYGRAFX
+
       self
     end
 
