@@ -3,9 +3,12 @@
 #include <mruby/string.h>
 #include <mruby/value.h>
 #include <mruby/variable.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "driver/i2c.h"
 #include "esp_err.h"
@@ -46,135 +49,166 @@
 // SSD1306 display config
 #define SSD1306_DISPLAY_WIDTH   128
 #define SSD1306_DISPLAY_HEIGHT  64
-#define SSD1306_DISPLAY_PIXSEL  1024
+#define SSD1306_DISPLAY_PIXEL   1024
 #define SSD1306_FONT_WIDTH      8
-#define SSD1306_FONT_HEIGHT     8 
+#define SSD1306_FONT_HEIGHT     8
 
 static const char *TAG = "SSD1306";
 
 
+// ----- Common graphics methods ----------
 // mruby binding of manipulate the graphics
+// ----------------------------------------
 static mrb_value
-ssd1306_clear(mrb_state *mrb, mrb_value self)
+lcd_clear(mrb_state *mrb, mrb_value self)
 {
-  buffer_clear();
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
+
+  buffer_clear(*tg);
   return self;
 }
 
 static mrb_value
-ssd1306_set_pixel(mrb_state *mrb, mrb_value self)
+lcd_set_pixel(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y;  
+	mrb_int x, y;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "ii", &x, &y);
-
-	set_pixel(x, y, color); 
+	
+  set_pixel(*tg, x, y, color);
   return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_get_pixel(mrb_state *mrb, mrb_value self)
+lcd_get_pixel(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y;  
+	mrb_int x, y;
   int16_t pixel;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   mrb_get_args(mrb, "ii", &x, &y);
-	pixel = get_pixel(x, y);
-
+  
+  pixel = get_pixel(*tg, x, y);
   return mrb_fixnum_value(pixel);
 }
 
 static mrb_value
-ssd1306_draw_line(mrb_state *mrb, mrb_value self) 
+lcd_draw_line(mrb_state *mrb, mrb_value self)
 {
   mrb_int x0, y0, x1, y1;
-  
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
-  
   mrb_get_args(mrb, "iiii", &x0, &y0, &x1, &y1);
-
-  if ((color < BLACK) || (color > INVERT)) {  
+  if ((color < BLACK) || (color > INVERT)) {
     color = WHITE;
   }
-  draw_line(x0, y0, x1, y1, color);
-  
+
+  draw_line(*tg, x0, y0, x1, y1, color);
   return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_vertical_line(mrb_state *mrb, mrb_value self)
+lcd_draw_vertical_line(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y, h;  
+	mrb_int x, y, h;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iii", &x, &y, &h);
-
-	draw_vertical_line(x, y, h, color);
-	return mrb_nil_value();
+	
+  draw_vertical_line(*tg, x, y, h, color);
+  return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_horizontal_line(mrb_state *mrb, mrb_value self)
+lcd_draw_horizontal_line(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y, w;  
+	mrb_int x, y, w;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iii", &x, &y, &w);
-
-	draw_horizontal_line(x, y, w, color);
+	
+  draw_horizontal_line(*tg, x, y, w, color);
 	return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_rect(mrb_state *mrb, mrb_value self)
+lcd_draw_rect(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y, w, h;  
+	mrb_int x, y, w, h;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iiii", &x, &y, &w, &h);
-
-	draw_rect(x, y, w, h, color); 
+	
+  draw_rect(*tg, x, y, w, h, color);
 	return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_fill_rect(mrb_state *mrb, mrb_value self)
+lcd_draw_fill_rect(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y, w, h;  
+	mrb_int x, y, w, h;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iiii", &x, &y, &w, &h);
-
-	draw_fill_rect(x, y, w, h, color); 
+	
+  draw_fill_rect(*tg, x, y, w, h, color);
 	return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_circle(mrb_state *mrb, mrb_value self)
+lcd_draw_circle(mrb_state *mrb, mrb_value self)
 {
-	mrb_int x, y, r;  
+	mrb_int x, y, r;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iii", &x, &y, &r);
-
-	draw_circle(x, y, r, color); 
+	
+  draw_circle(*tg, x, y, r, color);
 	return mrb_nil_value();
 }
 
 static mrb_value
-ssd1306_draw_fill_circle(mrb_state *mrb, mrb_value self)
+lcd_draw_fill_circle(mrb_state *mrb, mrb_value self)
 {
-  mrb_int x, y, r;  
+  mrb_int x, y, r;
   int16_t color;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
   color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
   mrb_get_args(mrb, "iii", &x, &y, &r);
-
-	draw_fill_circle(x, y, r, color); 
+	
+  draw_fill_circle(*tg, x, y, r, color);
 	return mrb_nil_value();
 }
 
 // mruby binding of Display a character string
+static mrb_value
+lcd_text(mrb_state *mrb, mrb_value self)
+{
+  mrb_int x, y;
+  mrb_value data;
+  int16_t color, fontsize;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
+  color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
+  fontsize = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@fontsize")));
+  mrb_get_args(mrb, "iiS", &x, &y, &data);
+  
+  display_text(*tg, x, y, RSTRING_PTR(data), RSTRING_LEN(data), color, fontsize);
+  // ESP_LOGI(TAG, "color:%d, size:%d, text:%s", color, fontsize, RSTRING_PTR(data));
+  return mrb_nil_value();
+}
+// ----- Common graphics methods -----
+
+
+
+// ----- SSD1306 methods and functions -----
+
 static mrb_value
 ssd1306_display(mrb_state *mrb, mrb_value self)
 {
@@ -182,21 +216,24 @@ ssd1306_display(mrb_state *mrb, mrb_value self)
   uint8_t addr, *buffer;
   i2c_cmd_handle_t cmd;
   esp_err_t err;
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
 
   port = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@port"));
   addr = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@addr")));
 
   // get frame buffer
-  buffer = mrb_malloc(mrb, SSD1306_DISPLAY_PIXSEL);
-  memset(buffer, 0, SSD1306_DISPLAY_PIXSEL);
-  buffer_read(buffer, SSD1306_DISPLAY_PIXSEL);
-
+  buffer = (uint8_t *)mrb_malloc(mrb, tg->display_pixel);
+  if (buffer != NULL) {
+    memset(buffer, 0x00, tg->display_pixel);
+  }
+  buffer_read(*tg, buffer, tg->display_pixel);
+  
   // send data to OLED
   cmd = i2c_cmd_link_create();
   i2c_master_start(cmd);
   i2c_master_write_byte(cmd, (addr << 1 ) | I2C_MASTER_WRITE, true);  
   i2c_master_write_byte(cmd, SSD1306I2C_CONTROLBYTE_DATASTREAM, true);
-  for (uint16_t i = 0; i < SSD1306_DISPLAY_PIXSEL; i++) {
+  for (uint16_t i = 0; i < tg->display_pixel; i++) {
     i2c_master_write_byte(cmd, buffer[i], true);
   }
   i2c_master_stop(cmd);
@@ -210,34 +247,52 @@ ssd1306_display(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(err);
 }   
 
-static mrb_value
-ssd1306_text(mrb_state *mrb, mrb_value self) 
+// Configuration the Tiny graphics libraries
+static void
+tinygrafx_init(tinygrafx_t *tg)
 {
-  mrb_int x, y;
-  mrb_value data;
+  tg->display_width = SSD1306_DISPLAY_WIDTH;
+  tg->display_height = SSD1306_DISPLAY_HEIGHT;
+  tg->display_pixel = SSD1306_DISPLAY_PIXEL;
+  tg->font_width = SSD1306_FONT_WIDTH;
+  tg->font_height = SSD1306_FONT_HEIGHT;
 
-  int16_t color, fontsize;
-  color = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@color")));
-  fontsize = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@fontsize")));
-
-  mrb_get_args(mrb, "iiS", &x, &y, &data);
-  display_text(x, y, RSTRING_PTR(data), RSTRING_LEN(data), color, fontsize);
-  
-  return mrb_nil_value();
+  // set frame buffer
+  uint8_t *buffer;
+  buffer = (uint8_t *)malloc(tg->display_pixel);
+  if (buffer != NULL) {
+    memset(buffer, 0, tg->display_pixel);
+  }
+  tg->display_buffer = buffer; 
 }
 
-static mrb_value
-_tinygrafx_init(mrb_state *mrb, mrb_value self) 
+// free mrb object for GC.
+static void
+meb_ssd1306_free(mrb_state *mrb, void *ptr)
 {
+  tinygrafx_t *tg = ptr;
+  mrb_free(mrb, tg->display_buffer);
+}
+
+// mruby data_type
+static const struct mrb_data_type mrb_spi_config_type = {
+  "spi_config_type", meb_ssd1306_free
+};
+
+static mrb_value
+ssd1306_tinygrafx_init(mrb_state *mrb, mrb_value self) 
+{
+  tinygrafx_t *tg = (tinygrafx_t *)DATA_PTR(self);
+  if (tg) {
+    mrb_free(mrb, tg);
+  }
+  
+  tg = (tinygrafx_t *)mrb_malloc(mrb, sizeof(tinygrafx_t));
+  DATA_TYPE(self) = &mrb_spi_config_type;
+  DATA_PTR(self)  = tg;
+
   // Initialize the TINYGRAFX
-  tinygrafx_config_t config = {
-    .display_width = SSD1306_DISPLAY_WIDTH,
-    .display_height = SSD1306_DISPLAY_HEIGHT,
-    .display_pixsel = SSD1306_DISPLAY_PIXSEL,
-    .font_width = SSD1306_FONT_WIDTH,
-    .font_height = SSD1306_FONT_HEIGHT
-  };
-  tinygrafx_init(config);
+  tinygrafx_init(tg);
   
   return mrb_nil_value();
 }
@@ -252,25 +307,26 @@ mrb_mruby_esp32_i2c_ssd1306_gem_init(mrb_state* mrb)
   mrb_define_const(mrb, oled, "INVERT", mrb_fixnum_value(INVERT));
 
   struct RClass *ssd1306 = mrb_define_class_under(mrb, oled, "SSD1306", mrb->object_class);
+  MRB_SET_INSTANCE_TT(ssd1306, MRB_TT_DATA);
   
-  // manipulate graphics
-  mrb_define_method(mrb, ssd1306, "clear", ssd1306_clear, MRB_ARGS_NONE());
-  mrb_define_method(mrb, ssd1306, "set_pixel", ssd1306_set_pixel, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, ssd1306, "get_pixel", ssd1306_get_pixel, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, ssd1306, "line", ssd1306_draw_line, MRB_ARGS_REQ(4));
-  mrb_define_method(mrb, ssd1306, "vline", ssd1306_draw_vertical_line, MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, ssd1306, "hline", ssd1306_draw_horizontal_line, MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, ssd1306, "rect", ssd1306_draw_rect, MRB_ARGS_REQ(4));
-  mrb_define_method(mrb, ssd1306, "fill_rect", ssd1306_draw_fill_rect, MRB_ARGS_REQ(4));
-  mrb_define_method(mrb, ssd1306, "circle", ssd1306_draw_circle, MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, ssd1306, "fill_circle", ssd1306_draw_fill_circle, MRB_ARGS_REQ(3));
+  // Common graphics methods
+  mrb_define_method(mrb, ssd1306, "clear", lcd_clear, MRB_ARGS_NONE());
+  mrb_define_method(mrb, ssd1306, "set_pixel", lcd_set_pixel, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, ssd1306, "get_pixel", lcd_get_pixel, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, ssd1306, "line", lcd_draw_line, MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, ssd1306, "vline", lcd_draw_vertical_line, MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, ssd1306, "hline", lcd_draw_horizontal_line, MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, ssd1306, "rect", lcd_draw_rect, MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, ssd1306, "fill_rect", lcd_draw_fill_rect, MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, ssd1306, "circle", lcd_draw_circle, MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, ssd1306, "fill_circle", lcd_draw_fill_circle, MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, ssd1306, "text", lcd_text, MRB_ARGS_REQ(3));
 
-  // Display a character string
+  // Send frame buffer to display
   mrb_define_method(mrb, ssd1306, "display", ssd1306_display, MRB_ARGS_NONE());
-  mrb_define_method(mrb, ssd1306, "text", ssd1306_text, MRB_ARGS_REQ(3));
   
   // Initialize the TINYGRAFX
-  mrb_define_method(mrb, ssd1306, "_tinygrafx_init", _tinygrafx_init, MRB_ARGS_NONE());
+  mrb_define_method(mrb, ssd1306, "_init", ssd1306_tinygrafx_init, MRB_ARGS_NONE());
 }
 
 void
