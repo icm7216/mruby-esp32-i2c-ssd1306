@@ -2,13 +2,13 @@ module OLED
   class SSD1306
     attr_accessor :color
     attr_accessor :fontsize
-    
+
     def initialize(i2c, addr=0x3c, color=1, fontsize=1, options={})
       @i2c = i2c
       @addr = addr
       @color = color
       @fontsize = fontsize
- 
+
       # see controller data sheet
       @i2c.send("\x00\xAE", @addr)          # display OFF
       @i2c.send("\x00\xA8\x3F", @addr)      # MUX ratio (0x3F = 64d -1d)
@@ -23,12 +23,12 @@ module OLED
       @i2c.send("\x00\xA4", @addr)          # resume ram content display
       @i2c.send("\x00\xd5\x00", @addr)      # set osc frequency
       @i2c.send("\x00\x8D\x14", @addr)      # enable charge pump
-      
+
       @i2c.send("\x00\x20\x00", @addr)      # ADDR_MODE, 0x00 = Horizontal Mode
       @i2c.send("\x00\x21\x00\x7f", @addr)  # COLUMN_ADDR, 0x00 = start, 0x7f = end
       @i2c.send("\x00\x22\x00\x07", @addr)  # PAGE_ADDR, 0x00 = start, 0x7f = end
-      @i2c.send("\x00\xAF", @addr)          # display ON 
-      System.delay(200)
+      @i2c.send("\x00\xAF", @addr)          # display ON
+      ESP32::System.delay(200)
 
       _init                                 # Initialize the TINYGRAFX
 
